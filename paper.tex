@@ -44,6 +44,8 @@
 \usepackage{syntax}
 
 \usepackage{lipsum}  
+\usepackage{graphicx}               % Necessary to use \scalebox
+
 
 
 \usepackage{thmtools} 
@@ -152,40 +154,38 @@
 %% The abstract is a short summary of the work to be presented in the
 %% article.
 \begin{abstract}
-  %Writing PBT generators is annoying, it'd be nice to infer them.
-  %Prior work auto-generates highly structured stuff, but 
-  \lipsum[1-1]
+  Property-Based Testing in the style of QuickCheck has proven to be a
+  very powerful and useful generalization of traditional software testing techniques
+  such as unit testing. This power comes at the cost of requiring users to occasionally write \emph{generators}:
+  programs which emit random data satisfying the invariants assumed by the program under test. While some work exists
+  to derive these generators directly from the invariants in question, this work is mostly focused on highly structured data,
+  and often fails to handle the kinds of numerical invariants that occur commonly in systems programming tasks.
+  In this extended abstract, we present an approach to inferring generators for a restricted class of numerical properties.
+  \vspace{-18px}
 \end{abstract}
 
-%%
-%% This command processes the author and affiliation and title
-%% information and builds the first part of the formatted document.
+
 \maketitle
 
-
 \section{Motivation}
+% \vspace{-3px}
 Property-Based Testing (PBT) \cite{qc} is a program testing method which tests
 logical properties of functions by randomly generating thousands of inputs, and ensuring that
-the the properties hold at each concrete value. While originally concieved as a more
-principled form of unit testing, PBT also works as a lightweight formal verification method
-wherein the specifications for a program are \emph{tested} instead of proved.
-
-The main idea behind this approach to verification is that PBT trades off the
-full certainty provided by SMT and theorem proving approaches for a significantly streamlined
-user experience requiring considerably less user input. To ``verify'' a universally quantified property
-$\forall x. P(x) \implies Q(x)$, we generate values satisfying $P$, and check that they satisfy $Q$.
-Unfortunately PBT does still requre \emph{some} user input. Users must occasionally write \emph{generators}: programs which
-emit random data that satisfies the premise $P$.
+the the properties hold at each concrete value. Given a property $\forall x. P(x) \implies Q(x)$,
+we generate values satisfying $P$, and check that they satisfy $Q$.
+While this process is highly automated and requires no user input, users must occasionally write \emph{generators}:
+programs which emit random data that satisfies the premise $P$.
 
 Much of the time, this burden can be mitigated by automation, such as when the data structure being generated
 is composed entirely of structures that already have generators, or $P$ is described as an inductive
-relation \cite{gggir}. However, the case of inferring generators for \emph{numerical} properties is not well
-handled by prior work. Numerical properties---those involving constriants over numbers---appear regularly in
-systems verification tasks \cite{???}, where structured data described by inductive invariants is rare, inputs regularly
-take the form of pointers and integers, and many function preconditions amount to bounds-checking.
+relation \cite{gggir}. However, the case of inferring generators for \emph{numerical} properties---those involving constriants over numbers--- is not well
+handled by prior work. Numerical properties appear regularly in
+systems programming tasks \cite{???}, where structured data described by inductive invariants is rare, inputs regularly
+take the form of pointers and integers, and many function preconditions amount to bounds-checking or ensuring
+that certain fields in different structures are related in some way.
 
-In this paper, we develop a method for inferring random generators for a small class of numerical properties akin
-to the kind commonly found in systems verification. Because manual generator-writing for numerical properties is especially
+In this extended abstract, we develop a method for inferring random generators for a small class of numerical properties akin
+to the kind commonly found in systems programming. Because manual generator-writing for numerical properties is especially
 tedious, our goal is to infer generators that are comparable to ones that a user might write as a first cut.
 The method proceeds by developing a number of generator ``candidates'', expressed in a DSL we call \texttt{ALuck}, described in \autoref{sec:luck}.
 These candidates mimic the way that a human might write a generator for numerical preconditions: by randomly choosing values
@@ -279,7 +279,7 @@ this algorithm, present benchmarks, and briefly discuss future work.
 \label{sec:luck}
 
 The syntax of propositions that we handle are shown in
-\autoref{fig:precond-syntax}. These are conjunctions and negations of
+\autoref{fig:precond-syntax-and-aluck}. These are conjunctions and negations of
 arithmetical equalities and inequalities with variables, which range over
 the arguments of the function under test. The allowable expressions in these inequalities are
 essentially multi-linear functions, where each variable occurs with degree at
@@ -290,8 +290,10 @@ other numerical operators (div, mod), and constraints over structured types like
 simplify the discussion.
 
 \begin{figure}
+\vspace{-10px}
 \caption{Syntax of Propositions and Generator Scripts}
 \label{fig:precond-syntax-and-aluck}
+\scalebox{0.8}{\parbox{\linewidth}{%
 $$
 \begin{array}{llll}
 \text{Expressions} & e & ::= & x \; | \; e + e \; | \; -e \;|\; e*e\\
@@ -299,21 +301,24 @@ $$
 \text{Propositions} & P & ::= & P \wedge P \;|\; e R e\\
 \end{array}
 $$
+}}
 
+\scalebox{0.8}{\parbox{\linewidth}{%
 $$
 \begin{array}{llll}
 \text{Generator Actions} & a & ::= & !x \;|\; e R e\\
 \text{Generator Scripts} & s & ::= & [] \;|\; a \, :: \, s\\
 \end{array}
 $$
+}}
+\vspace{-15px}
 \end{figure}
 
-In order to make the generator inference/synthesis problem tractable, we fix the
-syntactic form of the generators we plan to consider. Our generators are written
+To make the generator inference problem tractable, we fix the
+syntactic form of the generators. Our generators are written
 in a language called \texttt{ALuck} (for \textit{arithmetic} \texttt{Luck})
 inspired by \texttt{Luck} \cite{luck}, a domain-specific language for writing
-generators which tries to mirror the declarative form of standard propositions.
-Generators written \texttt{ALuck} run by sequentially \textit{constraining} and
+generators. Generators written \texttt{ALuck} run by sequentially \textit{constraining} and
 \textit{concretizing} variables. Every variable in an \texttt{ALuck} generator
 begins as a symbolic variable. Constraints over these variables are then added.
 Variables can then be concretized, wherein they are replaced by a random value
@@ -323,14 +328,14 @@ chosen values.
 
 More concretely, generators in \texttt{ALuck} are sequences of ``concretize"
 operations, written $!x$, and ``constrain" operations, written simply as the
-constraint to be added. The syntax of \texttt{ALuck} is shown in
+constraint to be added. This syntax is shown in
 \autoref{fig:precond-syntax-and-aluck}. These sequences are then evaluated from left to
 right while maintaining a pair of mappings: one from concretized variables to
 their values, and the other from yet-unconcretized variables to the set of
 constraints that have accumulated on them.  When a ``constrain" operation $c$ is
 encountered, the constraint $c$ is added to the constraint sets of all of the
 variables it mentions. If a constraint mentions no variables, it is checked for
-valdity: if the constraint is not valid, the generator \emph{fails}.
+valdity: if the constraint is not valid, the generator fails.
 
 When a ``concretize" operation $!x$ is encountered, a value is randomly sampled from
 the uniform distribution on the set of possible values\footnote{ Because
@@ -339,16 +344,14 @@ make sense here, even for unconstrained variables.  } denoted by the constraints
 on $x$. This semantics is shown in \autoref{fig:aluck-semantics}, where the
 judgment $V,C \vdash s \Downarrow V',C'$ means that the script $s$ evaluates
 under concretized-variable-map $V$ and constraint map $C$, and returns updated
-variable and constraint maps $V'$ and $C'$.
+variable and constraint maps $V'$ and $C'$. We note that this semantics is partial,
+as generators can fail when attempting to concretize a variable whose constraints are unsatisfiable.
+This is crucial: different generators for the same property can fail more or
+less often, and we would like to infer generators which fail infrequently.
 
-Of course, the step of ``sampling from constraints specified by inequalities on
-variables" for concretization operations is exactly what we're trying to solve!
-To make this step tractable, we enforce that our \texttt{ALuck} programs be
-``well-concretized": when a variable is concretized, all variables which occur
-in constraints with it must also already have been concretized. This requirement
-is strict, but it (a) makes it possible to run generators, and (b) simplifies
-the generator inference process by shrinking the class of generators under
-consideration.
+To make the sampling step tractable, we enforce that our \texttt{ALuck} programs be
+``well-concretized": when $!x$ occurs, all variables which occur
+in constraints with $x$ must already have been concretized.
 
 % To give some intuition about how these generator scripts work, we consider
 % running the example script $s = [0 \leq x, !x, x \leq y, !y]$, which is a
@@ -365,22 +368,21 @@ consideration.
 % this one fail much all the time, and some such as the generator $s$ above never
 % fail.
 
-The fact that generators can fail is crucial: different generators for the same property can fail more or
-less often, and we would like to infer generators which fail infrequently.
-\begin{definition}[$p$-Goodness]
-We say that a generator script $s$ is $p$-good if it succeeds with probability at least $p$.
-\end{definition}
-
 \begin{figure}
+\vspace{-10px}
 \caption{Generation Semantics}
 \label{fig:aluck-semantics}
+
+\scalebox{0.75}{\parbox{\linewidth}{%
 \begin{mathpar}
 \inferrule{v \sim \mathcal{U}\left(\llbracket C(x)\rrbracket\right)\\ V\{x \mapsto v\},C \vdash s \Downarrow V',C'}{V,C \vdash !x :: s \Downarrow V',C'}
 
 \inferrule{C'(x) = C(x) \cup \{c\} \\ V,C' \vdash s \Downarrow V',C'' }{V,C \vdash c(x) :: s \Downarrow V',C''}
-
+\hspace{5px}
 \inferrule{V \vDash c \\ V,C \vdash s \Downarrow V',C'}{V,C \vdash c :: s \Downarrow V',C'}
 \end{mathpar}
+}}
+\vspace{-15px}
 \end{figure}
 
 \section{Generator Candidate Inference}
@@ -462,8 +464,7 @@ $P$) is a number of generators to take.
 \label{sec:bandits}
 With our bag of generators in hand, we now need to find the best one. The
 approach we take will be inspired by the Multi-Armed Bandits
-\cite{gittins1979bandit} problem\footnote{More precisely, Stochastic Bernoulli
-Bandits} from the theory of reinforcement learning. In short, the multi armed
+\cite{gittins1979bandit} problem from the theory of reinforcement learning. In short, the multi armed
 bandits problem describes a situation where an algorithm is repeatedly presented
 a fixed set of choices. Each choice gives a different (random) reward, and the
 goal of the game is to maximize the total reward. Solving this optimization problem
@@ -479,24 +480,6 @@ Bandits problem will let us learn which generators give the best results
 function.
 
 
-% To make the discussion more concrete, the Multi-Armed Bandits problem is
-% described as the following repeated game: at each round $t$, the player plays an
-% action $a_t \in [K]$, and receives a reward $X_{{a_t},t}$, which is a
-% $\{0,1\}$-valued random variable. The random variables $X_{i,t}$ are IID for
-% fixed $i$, and independent for fixed $t$. We write the mean of the $i$th reward
-% variable (for all $t$) $\mu_i$. The goal of the game is to maximize one's
-% reward, and so the goal of a bandits learning algorithm is to learn an adaptive
-% policy, which takes a history of play up until state $t$ (all actions $a_{t'}$
-% and received rewards $X_{a_{t'},t'}$ for $t' < t$), and produces a new action
-% $a_t$. The metric by which we compare bandits algorthms is \textit{regret}: how
-% much worse they do than the best policy in hindsight.
-
-% \begin{definition}[Regret]
-% Define $i_\star = \argmax_i \mu_i$, and write $\mu_\star = \mu_{i_\star}$. The regret $R(A)$ of an algorithm $A$ over $T$ rounds is defined as
-% $$
-% R(A) = T\mu_\star - \mathbb{E}\left[\sum_{t=1}^T X_{A(t),t}\right]
-% $$
-% \end{definition}
 
 The algorithm we will use is called UCB1 \cite{auer2002finite}. While more sophisticated
 bandits algorithms exist, this one is sufficient for our purposes. When given a list of generators
@@ -513,19 +496,21 @@ be no worse than the \emph{best} generator the algorithm was given.
 % generator candidates $g_1,\dots g_k$, the property $P$, a number of rounds to
 % run for $T$, and returns a list of generated values satisfying $P$.
 \begin{restatable}{thm}{regretthm}
-Fix a property $P$ and generators $g_1,\dots,g_K$ which are $p_i$-good. Then,
-
-$$
+Fix a property $P$ and generators $g_1,\dots,g_K$, where $g_i$ succeeds with probability at least $p_i$. Then,
+\vspace{-2px}
+\[
 \lim_{T \to \infty} \mathbb{E}\left[\frac{1}{T}\left|\texttt{ucb1}(g_1,\dots,g_K,P,T)\right|\right] \geq \max_i p_i
-$$
+\]
 \end{restatable}
 % Intuitively, this theorem justifies our intuition that the ucb1 algorithm
 % ``finds the best generator". As the number of rounds gets large, the ratio of
 % the number of valid inputs generated by \texttt{ucb1} to the number of rounds is
 % no worse than the success probability of the best generator. 
-In other words, with high probability\footnote{One could do an
-analysis using Chebyshev's inequality to bound the difference between the
-empirical frequency of the sequence and its mean.}, the stream of values
+In other words, with high probability
+% \footnote{One could do an
+% analysis using Chebyshev's inequality to bound the difference between the
+% empirical frequency of the sequence and its mean.}
+, the stream of values
 emitted by an ``infinite run" of UCB1 acts like a $(\max_i p_i)$-good
 generator for $P$.
 
@@ -546,40 +531,61 @@ The code is available \href{https://github.com/jdublu10/triple-testing}{here}.
 
 In \autoref{tab:data}, we show the results for some trials of our algorithm. In
 each trial, we run the generration algorithm on the specified constraint five
-times for $T = 1000$ iterations. $K$ is the average number of unique scripts
-discovered by the random DFS, Rejected is the average number of failed generator
-samples that happen during the runs, and Unique is the average number of unique
-input sets generated. In all cases, the generation takes less than 1ms of wall
-clock time, as reported by the Haskell library \texttt{timeit}. By default,
-integers are generated in the range $[-10000,10000]$ instead of the full integer
-range.
+times for $T = 1000$ iterations. 
+% $K$ is the average number of unique scripts
+% discovered by the random DFS, Rejected is the average number of failed generator
+% samples that happen during the runs, and Unique is the average number of unique
+% input sets generated. In all cases, the generation takes less than 1ms of wall
+% clock time. Integers are generated in the range $[-10000,10000]$ instead of the full integer
+% range.
 
-As \autoref{tab:data} indicates, more work is required in order for this
-algorithm to be ready for prime time. Most of this work needs to be done on the
-script inference side of things, to get better generator candidates. One low
-hanging fruit is a range analysis. This is exemplified by the (huge) performance
+In \autoref{tab:data-selected}, we present selected results: a larger table
+is available in the Appendix. The largest issue is the performance
 differences between the runs on the proposition $0 \leq x \leq y \leq 100$ with
-and without the added constraint $x \leq 100$. This constraint is already
-implied by the first, but not explicitly including it degrades performance
-significantly. The ``best" generator in for the first proposition samples an
+and without explicitly including the implicand $x \leq 100$.
+The ``best" generator for the proposition without it samples an
 arbitrary $x \geq 0$, which is very unlikely to leave room for some $y$
-satisfying $x \leq y \leq 100$. Including the added constraint (which can be
-inferred from the first) improve performance dramatically. Another source of
-potential improvement is in our candidate generation procedure, where we could
-attempt to remove edges from the graph in order to minimize the number of
-scripts. Finally, we have only scratched the surface of reinforcement learning
-in \autoref{alg:ucb1}. Further tricks such as a probabilistic policy and
-dropping particularly bad generators could lead to faster convergence of the
-learner.
+satisfying $x \leq y \leq 100$. Including the added constraint ensures that we leave space
+with our initial choice of $x$.
 
-\begin{center}
-\begin{table}[]
-\caption{Results}
-\label{tab:data}
+% Further, we have only scratched the surface of reinforcement learning
+% in \autoref{alg:ucb1}. Further tricks such as a probabilistic policy and
+% dropping particularly bad generators could lead to faster convergence of the
+% learner.
+
+\begin{table}[h]
+\label{tab:data-selected}
 \centering
+\scalebox{0.8}{\parbox{\linewidth}{%
 \begin{tabular}{|l|l|l|l|l|}
 \hline
-Constraint & $K$ & Rejected & Unique \\ \hline
+Constraint & $K$ & $R$ & $U$ \\ \hline
+    %  $0 \leq x \leq y \leq 100 \wedge x \leq 100$ & $2$ & $11$ & $831$ \\ \hline
+     $x = y + z \wedge x \geq y \wedge x,y,z \geq 0$      &   $4$  &    $48.6$      &    $951.4$    \\ \hline
+     $0 \leq x \leq y \leq 100$ & $2$ & $993.4$ & $6.6$ \\ \hline
+     $0 \leq x \leq y \leq 100 \wedge x \leq 100$ & $2$ & $11$ & $831$ \\ \hline
+     $x - y \leq 5 \wedge x - y \leq 10 \wedge y - z \leq 2$ & $3.8$ & $26.2$ & $831$ \\ \hline
+\end{tabular}
+\caption{Selected Results. $K$ = average number of unique scripts, $R$ = number of failed draws, $U$ = number of unique values generated}
+}}
+\end{table}
+
+\clearpage
+\bibliographystyle{plain}
+\bibliography{refs}
+
+\clearpage
+\appendix
+\section*{Appendix}
+
+\begin{center}
+\begin{table}[h]
+\label{tab:data-full}
+\centering
+\scalebox{0.8}{\parbox{\linewidth}{%
+\begin{tabular}{|l|l|l|l|l|}
+\hline
+Constraint & $K$ & $R$ & $U$ \\ \hline
      $0 \leq x \leq y \leq 100 \wedge x \leq 100$ & $2$ & $11$ & $831$ \\ \hline
      $x = y + z \wedge x,y,z \geq 0$      &   $5$   &    $506$      &     $494$   \\ \hline
      $x = y + z \wedge x \geq y \wedge x,y,z \geq 0$      &   $4$  &    $48.6$      &    $951.4$    \\ \hline
@@ -588,15 +594,11 @@ Constraint & $K$ & Rejected & Unique \\ \hline
      $0 \leq x \leq y \leq 100 \wedge x \leq 100$ & $2$ & $11$ & $831$ \\ \hline
      $x - y \leq 5 \wedge x - y \leq 10 \wedge y - z \leq 2$ & $3.8$ & $26.2$ & $831$ \\ \hline
 \end{tabular}
+\caption{Full Results}
+}}
 \end{table}
 \end{center}
-
-\bibliographystyle{plain}
-\bibliography{refs}
-
-\clearpage
-\appendix
-\section*{Appendix}
+\noindent\rule{0.5\textwidth}{1pt}
 
 \begin{algorithm}
     \caption{Generator from an ordering}
@@ -620,6 +622,27 @@ Constraint & $K$ & Rejected & Unique \\ \hline
     \end{algorithmic}
 \end{algorithm}
 
+
+
+\subsection*{Bandits and UCB1}
+The Multi-Armed Bandits problem is
+described as the following repeated game: at each round $t$, the player plays an
+action $a_t \in [K]$, and receives a reward $X_{{a_t},t}$, which is a
+$\{0,1\}$-valued random variable. The random variables $X_{i,t}$ are IID for
+fixed $i$, and independent for fixed $t$. We write the mean of the $i$th reward
+variable (for all $t$) $\mu_i$. The goal of the game is to maximize one's
+reward, and so the goal of a bandits learning algorithm is to learn an adaptive
+policy, which takes a history of play up until state $t$ (all actions $a_{t'}$
+and received rewards $X_{a_{t'},t'}$ for $t' < t$), and produces a new action
+$a_t$. The metric by which we compare bandits algorthms is \textit{regret}: how
+much worse they do than the best policy in hindsight.
+
+\begin{definition}[Regret]
+Define $i_\star = \argmax_i \mu_i$, and write $\mu_\star = \mu_{i_\star}$. The regret $R(A)$ of an algorithm $A$ over $T$ rounds is defined as
+$$
+R(A) = T\mu_\star - \mathbb{E}\left[\sum_{t=1}^T X_{A(t),t}\right]
+$$
+\end{definition}
 
 \begin{algorithm}
     \caption{Learn a Generator}
@@ -648,6 +671,8 @@ Constraint & $K$ & Rejected & Unique \\ \hline
       \EndFunction
     \end{algorithmic}
 \end{algorithm}
+
+
 
 \regretthm*
 \begin{proof}
