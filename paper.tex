@@ -182,7 +182,7 @@ relation \cite{gggir}. However, the case of inferring generators for \emph{numer
 handled by prior work. Numerical properties appear regularly in
 systems programming tasks \cite{ironfleet} where structured data described by inductive invariants is rare, inputs regularly
 take the form of pointers and integers, and many function preconditions amount to bounds-checking or ensuring
-that certain fields in different structures are related in some way.
+that certain fields in different inputs are equal.
 
 In this extended abstract, we develop a method for inferring random generators for a small class of numerical properties akin
 to the kind commonly found in systems programming. Because manual generator-writing for numerical properties is especially
@@ -192,9 +192,9 @@ These candidates mimic the way that a human might write a generator for numerica
 one variable at a time, constraining subsequent choices by the previous values chosen. In \autoref{sec:sci}, we show how candidates
 are chosen from the space of possible \texttt{ALuck} generators.
 As we will see, it is sometimes the case that \emph{none} of the candidates are all that good. In this case, we must make the best
-of a bad situation, and discover the best candidate among the set. A learning-theoretic method for this is presented in \autoref{sec:bandits}.
+of a bad situation, and discover the best candidate among the set. A method for this based on the multi-armed bandits problem \cite{banditbook} is presented in \autoref{sec:bandits}.
 Finally, in \autoref{sec:impl}, we describe our implementation of
-this algorithm, present benchmarks, and briefly discuss future work.
+this algorithm and present benchmarks.
 
 % JOE:
 % We want to be able to do this so we could do PBT for systems-y code!
@@ -279,8 +279,7 @@ this algorithm, present benchmarks, and briefly discuss future work.
 \label{sec:luck}
 
 The syntax of propositions that we handle are shown in
-\autoref{fig:precond-syntax-and-aluck}. These are conjunctions and negations of
-arithmetical equalities and inequalities with variables, which range over
+\autoref{fig:precond-syntax-and-aluck}. The variables range over
 the arguments of the function under test. The allowable expressions in these inequalities are
 essentially multi-linear functions, where each variable occurs with degree at
 most one. While this form is restrictive, we have found empirically that this covers
@@ -317,8 +316,7 @@ $$
 To make the generator inference problem tractable, we fix the
 syntactic form of the generators. Our generators are written
 in a language called \texttt{ALuck} (for \textit{arithmetic} \texttt{Luck})
-inspired by \texttt{Luck} \cite{luck}, a domain-specific language for writing
-generators. Generators written \texttt{ALuck} run by sequentially \textit{constraining} and
+inspired by \texttt{Luck} \cite{luck}. Generators written \texttt{ALuck} run by sequentially \textit{constraining} and
 \textit{concretizing} variables. Every variable in an \texttt{ALuck} generator
 begins as a symbolic variable. Constraints over these variables are then added.
 Variables can then be concretized, wherein they are replaced by a random value
@@ -396,10 +394,10 @@ appear before a concretization immediately before it.
 
 Because of this, to infer generators for a property $P$, it suffices to
 generate orderings of its variables. Unfortunately, for a property $P$ with
-$n$ free variables, there are $n!$ such orderings: a very large search space.
-Fortunately, we can prune this search space by only looking for ``relevant"
+$n$ free variables, there are $n!$ such orderings.
+We can prune this search space by only looking for ``relevant"
 orderings. If some variables are not related to others, the well-concretization
-condition won't care the relative order in which they're generated.
+condition won't care about the relative order in which they're generated.
 
 % To illustrate, consider the property $x \leq y \wedge u \leq v$.
 % There are $24$ different variable orderings on $4$ variables, but there are
@@ -415,10 +413,10 @@ this graph, ``unrelated'' variables live in different connected components.
 Then, to generate a concretization ordering, we depth-first search $G(P)$, randomly
 choosing the next neighbor to explore,
 and list variables in the order that they're visited in the graph.
-Since different connected components are listed separately, unrelated variables
-will not 
-The fact that related variables lie in separate connected components means
-that 
+Since different connected components are listed separately, concretizations of unrelated variables
+will not occur together.
+% The fact that related variables lie in separate connected components means
+% that 
 % we create an undirected graph from a proposition to
 % encode the important inter-relationships that a concretization order should
 % capture.
@@ -451,7 +449,7 @@ that
 %     \end{algorithmic}
 % \end{algorithm}
 
-To generate our set of generator candidates, we repeatedly run this function.
+To generate our set of generator candidates, we repeatedly run this random DFS procedure.
 This may give repeated generators, and so we filter the result for uniqueness.
 The number of generators in our set requires a careful
 balance. Too few and the set may not contain a generator which succeeds often
@@ -464,13 +462,13 @@ $P$) is a number of generators to take.
 \label{sec:bandits}
 With our bag of generators in hand, we now need to find the best one. The
 approach we take will be inspired by the Multi-Armed Bandits
-\cite{gittins1979bandit} problem from the theory of reinforcement learning. In short, the multi armed
-bandits problem describes a game where an algorithm is repeatedly presented
+\cite{gittins1979bandit} problem from the theory of reinforcement learning. In short, the Multi-Armed
+Bandits problem describes a game where an algorithm is repeatedly presented
 a fixed set of choices. Each choice gives a different (random) reward, and the
 goal of the game is to maximize the total reward. Solving this optimization problem
 online is too difficult in an adversarial setting, so algorithms for the multi-armed
 bandits problem aim to instead minimize \emph{regret}: how much worse their total reward
-was than the best possible total reward in hindsight. To achieve this, bandits algorithms
+was than the total reward from the best single choice in hindsight. To achieve this, bandits algorithms
 learn which actions have historically given more reward, and play those more frequently.
 In our setting, the ``choices" are our
 generator candidates, and the rewards are given by success or failure of a
@@ -507,7 +505,7 @@ Fix a property $P$ and generators $g_1,\dots,g_K$, where $g_i$ succeeds with pro
 % the number of valid inputs generated by \texttt{ucb1} to the number of rounds is
 % no worse than the success probability of the best generator. 
 In other words, the stream of values
-emitted by an ``infinite run" of UCB1 acts like a
+emitted by an ``infinite run" of UCB1 acts like\footnote{In theory, the difference $\left|\frac{1}{T}\mathbb{E}\left[\left|\texttt{ucb1}\right|\right] - \max_i p_i \right|$ converges like $O\left(\frac{\log T}{T}\right)$ \cite[Theorem 1]{auer2002finite}. Empirically, we have found this to be quite rapid.} a
 generator for $P$ which succeeds with probability at least $\max_i p_i$.
 
 
@@ -651,11 +649,13 @@ $$
 \mathbb{E}\left[\sum_{t=1}^T X_{A(t),t}\right] = T\mu_{\star} - R(A)
 $$
 
-Dividing through by $T$, using the regret bound for UCB1, and the fact that $p_i \geq \mu_i$, we have that:
+The regret bound for UCB1 \cite[Theorem 7.2]{banditbook} states that $R(A) \in O\left(\sqrt{KT\log T}\right)$.
+
+Then, dividing through by $T$, using the regret bound for UCB1, and the fact that $p_i \geq \mu_i$, we have that:
 \begin{align*}
 \mathbb{E}\left[\frac{1}{T}\sum_{t=1}^T X_{A(t),t}\right] &= \mu_\star - \frac{R(A)}{T}\\
-&\geq \mu_{\star} - O\left(\sqrt{\frac{K\log K}{T}}\right)\\
-&\geq \max_i p_i - O\left(\sqrt{\frac{K\log K}{T}}\right)
+&\geq \mu_{\star} - O\left(\sqrt{\frac{K\log T}{T}}\right)\\
+&\geq \max_i p_i - O\left(\sqrt{\frac{K\log T}{T}}\right)
 \end{align*}
 which approaches $\max_i p_i$ as $T \to \infty$.
 \end{proof}
