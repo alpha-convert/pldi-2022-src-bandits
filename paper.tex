@@ -22,7 +22,7 @@
 %% in the same archive or directory.)
 %%
 %% The first command in your LaTeX source must be the \documentclass command.
-\documentclass[sigconf,nonacm,review,anonymous]{acmart}
+\documentclass[sigconf,nonacm]{acmart}
 
 \usepackage[utf8]{inputenc}
 \usepackage{amsmath}
@@ -530,7 +530,7 @@ and without explicitly including the implicand $x \leq 100$.
 The ``best" generator for the proposition without it samples an
 arbitrary $x \geq 0$, which is very unlikely to leave room for some $y$
 satisfying $x \leq y \leq 100$. Including the added constraint ensures that we leave space
-with our initial choice of $x$.
+with our initial choice of $x$. We leave resolving this to future work.
 
 % Further, we have only scratched the surface of reinforcement learning
 % in \autoref{alg:ucb1}. Further tricks such as a probabilistic policy and
@@ -641,19 +641,19 @@ $$
 \begin{proof}
 We begin by noting that $r_t = 1$ in an iteration if and only if an element is added to the output list in stage $t$. Therefore, the length of the output $\left|\texttt{ucb1}(g_1,\dots,g_K,P,T)\right|$ is precisely the sum of the ($\{0,1\}$-valued) $r_t$, $\sum_{t=1}^T r_t$. In the notation of the bandit problem, $r_t$ is the (revealed) value of the random variable $X_{A(t),t}$, and so 
 
-$$\mathbb{E}\left[\left|\texttt{ucb1}(g_1,\dots,g_K,P,T)\right|\right] = \mathbb{E}\left[\sum_{t=1}^T r_t\right] = \mathbb{E}\left[\sum_{t=1}^T X_{A(t),t}\right]$$.
+$$\mathbb{E}\left[\left|\texttt{ucb1}(g_1,\dots,g_K,P,T)\right|\right] = \mathbb{E}\left[\sum_{t=1}^T r_t\right] = \mathbb{E}\left[\sum_{t=1}^T X_{\texttt{ucb1}(t),t}\right]$$.
 
 But then by the definition of regret,
 
 $$
-\mathbb{E}\left[\sum_{t=1}^T X_{A(t),t}\right] = T\mu_{\star} - R(A)
+\mathbb{E}\left[\sum_{t=1}^T X_{\texttt{ucb1}(t),t}\right] = T\mu_{\star} - R(\texttt{ucb1})
 $$
 
-The regret bound for UCB1 \cite[Theorem 7.2]{banditbook} states that $R(A) \in O\left(\sqrt{KT\log T}\right)$.
+The regret bound for UCB1 \cite[Theorem 7.2]{banditbook} states that $R(\texttt{ucb1}) \in O\left(\sqrt{KT\log T}\right)$.
 
 Then, dividing through by $T$, using the regret bound for UCB1, and the fact that $p_i \geq \mu_i$, we have that:
 \begin{align*}
-\mathbb{E}\left[\frac{1}{T}\sum_{t=1}^T X_{A(t),t}\right] &= \mu_\star - \frac{R(A)}{T}\\
+\mathbb{E}\left[\frac{1}{T}\sum_{t=1}^T X_{\texttt{ucb1}(t),t}\right] &= \mu_\star - \frac{R(\texttt{ucb1})}{T}\\
 &\geq \mu_{\star} - O\left(\sqrt{\frac{K\log T}{T}}\right)\\
 &\geq \max_i p_i - O\left(\sqrt{\frac{K\log T}{T}}\right)
 \end{align*}
